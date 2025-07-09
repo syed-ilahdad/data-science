@@ -1,0 +1,77 @@
+# Test cases for cloudlake_dataset_certification_score
+
+pipeline:
+  - pipeline_parameters:
+    pipeline_id: "dqfw_dataset_certification_score"
+    pipeline_status: "ON"
+    default_args:
+      owner: "smunna@ext.uber.com"
+      owner_ldap_groups: ["cloudlake_metrics"]
+      email: ["cloudlake-insights-group@uber.com"]
+      email_on_failure: True
+      schedule_interval: "0 7/8 * * *"
+      start_date_year: 2023
+      start_date_month: 10
+      start_date_day: 16
+      retries: 0
+      partition_delta: -1 #in days
+  - sensor_parameters:
+    sensor_args:
+      sensor_flag: True
+      owner: "smunna@ext.uber.com"
+      email: ["cloudlake-insights-group@uber.com"]
+      owner_ldap_groups: ["cloudlake_metrics"]
+      depends_on_past: False
+      email_on_retry: False
+      email_on_failure: True
+      auto_backfill: False
+      exception_timeout: 10800 # in seconds
+      retry_delay: 300 # in seconds
+      retries: 10
+    task_details:
+      task_id: wait_for_hive_etl_table
+      external_pipeline_id: 0a6079f0-7336-11ee-b997-1c34da4d8ae0
+      external_task_id: QB_PRESTO_TO_TABLE
+      execution_delta: 0 # in hours
+  - validation_task_parameters:
+    task_details:
+      task_id: data_quality_validation
+      execution_timeout: 100 # in minutes
+
+data_quality_checks:
+  - table_name_with_namespace: "cloudlake_metrics.dataset_certification_score"
+    primary_key: None
+    partition_key: datestr
+    validations_multi_attribute:
+      multi_attribute_duplicates:
+        {
+          "col_list": ["dataset_name", "execution_date", "datestr", "test_category"],
+          "partition_condition": [{ "datestr": [] }],
+          "alert_criticality": "Low",
+          "threshold_check_type": "==",
+          "threshold_value": 0.00,
+        }
+    validations:
+      failure_score:
+        num_range_check:
+          {
+            "lower_range": 0.00,
+            "upper_range": 10.00,
+            "partition_condition": [{ "datestr": [] }],
+            "alert_criticality": "High",
+            "threshold_check_type": "==",
+            "threshold_value": 0.00,
+          }
+      health_score:
+        num_range_check:
+          {
+            "lower_range": 0.00,
+            "upper_range": 10.00,
+            "partition_condition": [{ "datestr": [] }],
+            "alert_criticality": "High",
+            "threshold_check_type": "==",
+            "threshold_value": 0.00,
+          }
+    alert_poc:
+      ["cloudlake-insights-group@uber.com","data-cloudlake-core-leads-group@uber.com"]
+    cc_list: ["vganga5@ext.uber.com"]
